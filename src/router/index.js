@@ -5,8 +5,8 @@ import HomeView from '../views/HomeView.vue'
 Vue.use(VueRouter)
 
 const router = new VueRouter({
-  mode: 'history',
-  base: import.meta.env.BASE_URL,
+	mode: "hash",
+	base: import.meta.env.BASE_URL,
   routes: [
     {
       path: '/',

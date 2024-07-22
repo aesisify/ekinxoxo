@@ -1,6 +1,6 @@
-# ekinxoxo
+# ekinxoxo (Simple project for a friend. Don't use it for anything, it's bad)
 
-This template should help get you started developing with Vue 3 in Vite.
+This template should help get you started developing with Vue 3 in Vite.,
 
 ## Recommended IDE Setup
 
