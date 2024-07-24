@@ -55,9 +55,12 @@ export default {
 
     calculateCorrelations() {
       const { exp, ref_one, ref_two } = this.graph_data;
-      if (exp && ref_one && ref_two) {
+      if (exp && ref_one) {
         // Calculate Pearson correlation between reference one and experimental data
         this.ref_one_corr = this.calculatePearsonCorrelation(ref_one, exp);
+      }
+
+      if (exp && ref_two) {
         // Calculate Pearson correlation between reference two and experimental data
         this.ref_two_corr = this.calculatePearsonCorrelation(ref_two, exp);
       }
