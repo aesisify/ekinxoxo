@@ -1,5 +1,8 @@
 <template>
   <main>
+    <p>
+      Please select all three files to do the calculation. All calculations are being done at front-end, so no files are being stored on our servers.
+    </p>
     <div>
       <label for="ref_one">Choose reference one:</label>
       <input type="file" id="ref_one" name="ref_one"
@@ -16,10 +19,10 @@
     </div>
     <div>
       <p>
-        ref_one to exp: {{ this.ref_one_corr * 100 }}%
+        Reference one to experimental: {{ this.ref_one_corr || "Not calculated" }}
       </p>
       <p>
-        ref_two to exp: {{ this.ref_two_corr * 100 }}%
+        Reference two to experimental: {{ this.ref_two_corr || "Not calculated" }}
       </p>
     </div>
   </main>
