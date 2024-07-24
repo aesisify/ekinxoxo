@@ -11,12 +11,19 @@
 
     <router-view />
 
+    <div class="fixed bottom-0 left-0 text-xs flex gap-1 items-center m-1">
+      <Icon class="h-4 w-4" icon="vaadin:scale"></Icon>
+      <a class="text-white" href="https://raw.githubusercontent.com/aesisify/ekinxoxo/main/LICENSE" target="_blank">
+        LICENSE
+      </a>
+    </div>
+
     <div class="fixed bottom-0 right-0 text-xs flex gap-1 items-center m-1">
       <Icon class="h-4 w-4" icon="ph:code-light"></Icon>
       <span>with</span>
       <Icon class="h-4 w-4 text-red-500" icon="ph:heart-light"></Icon>
       <span>by</span>
-      <a class="underline text-indigo-300" href="https://github.com/aesisify/" target="_blank">
+      <a class="underline text-indigo-300" href="https://github.com/aesisify/ekinxoxo" target="_blank">
         Oğuz Gergin
       </a>
       <span>and</span>
