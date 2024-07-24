@@ -1,8 +1,8 @@
 <template>
-  <div id="app">
+  <div class="py-4 px-6" id="app">
     <header>
         <nav>
-          <router-link to="/">Ekinxoxo</router-link>
+          <router-link class="uppercase font-semibold" to="/">Ekinxoxo</router-link>
         </nav>
     </header>
 

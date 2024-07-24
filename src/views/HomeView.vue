@@ -1,28 +1,28 @@
 <template>
   <main>
-    <p>
+    <p class="text-sm italic mt-2">
       Please select all three files to do the calculation. All calculations are being done at front-end, so no files are being stored on our servers.
     </p>
-    <div>
-      <label for="ref_one">Choose reference one:</label>
-      <input type="file" id="ref_one" name="ref_one"
+    <div class="mt-1">
+      <label class="block" for="ref_one">Choose reference one:</label>
+      <input class="block" type="file" id="ref_one" name="ref_one"
         @change="onFileChange($event.target.name, $event.target.files[0])" />
     </div>
-    <div>
-      <label for="ref_two">Choose reference two:</label>
-      <input type="file" id="ref_two" name="ref_two"
+    <div class="mt-1">
+      <label class="block" for="ref_two">Choose reference two:</label>
+      <input class="block" type="file" id="ref_two" name="ref_two"
         @change="onFileChange($event.target.name, $event.target.files[0])" />
     </div>
-    <div>
-      <label for="exp">Choose experimental:</label>
-      <input type="file" id="exp" name="exp" @change="onFileChange($event.target.name, $event.target.files[0])" />
+    <div class="mt-1">
+      <label class="block" for="exp">Choose experimental:</label>
+      <input class="block" type="file" id="exp" name="exp" @change="onFileChange($event.target.name, $event.target.files[0])" />
     </div>
-    <div>
+    <div class="mt-4">
       <p>
-        Reference one to experimental: {{ this.ref_one_corr || "Not calculated" }}
+        Reference one to experimental: <strong>{{ this.ref_one_corr || "Not calculated" }}</strong>
       </p>
       <p>
-        Reference two to experimental: {{ this.ref_two_corr || "Not calculated" }}
+        Reference two to experimental: <strong>{{ this.ref_two_corr || "Not calculated" }}</strong>
       </p>
     </div>
   </main>
