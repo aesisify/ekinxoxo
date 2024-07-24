@@ -1,28 +1,17 @@
 <template>
   <main>
     <p class="text-sm italic mt-2">
-      Please select all three files to do the calculation. All calculations are being done at front-end, so no files are being stored on our servers.
+      Please select all three files to do the calculation. All calculations are being done at front-end, so no files are
+      being stored on our servers.
     </p>
-    <div class="mt-1">
-      <label class="block" for="ref_one">Choose reference one:</label>
-      <input class="block" type="file" id="ref_one" name="ref_one"
+    <div v-for="(file, index) in fileInputs" :key="file.id" class="mt-1">
+      <label class="block" :for="file.id">{{ file.label }}</label>
+      <input class="block" type="file" :id="file.id" :name="file.id"
         @change="onFileChange($event.target.name, $event.target.files[0])" />
-    </div>
-    <div class="mt-1">
-      <label class="block" for="ref_two">Choose reference two:</label>
-      <input class="block" type="file" id="ref_two" name="ref_two"
-        @change="onFileChange($event.target.name, $event.target.files[0])" />
-    </div>
-    <div class="mt-1">
-      <label class="block" for="exp">Choose experimental:</label>
-      <input class="block" type="file" id="exp" name="exp" @change="onFileChange($event.target.name, $event.target.files[0])" />
     </div>
     <div class="mt-4">
-      <p>
-        Reference one to experimental: <strong>{{ this.ref_one_corr || "Not calculated" }}</strong>
-      </p>
-      <p>
-        Reference two to experimental: <strong>{{ this.ref_two_corr || "Not calculated" }}</strong>
+      <p v-for="(corr, index) in correlations" :key="index">
+        {{ corr.label }}: <strong>{{ corr.value || "Not calculated" }}</strong>
       </p>
     </div>
   </main>
@@ -32,76 +21,95 @@
 export default {
   data() {
     return {
-      ref_one: null,
-      ref_two: null,
-      exp: null,
+      fileInputs: [
+        { id: 'ref_one', label: 'Choose reference one:' },
+        { id: 'ref_two', label: 'Choose reference two:' },
+        { id: 'exp', label: 'Choose experimental:' }
+      ],
       graph_data: {},
       ref_one_corr: null,
       ref_two_corr: null,
     }
   },
+  computed: {
+    correlations() {
+      return [
+        { label: 'Reference one to experimental', value: this.ref_one_corr },
+        { label: 'Reference two to experimental', value: this.ref_two_corr }
+      ]
+    }
+  },
   methods: {
-    async onFileChange(n, f) {
-      const cont = await this.reader(f);
-      this.graph_data[n] = this.removeX(cont);
-      if (this.graph_data.exp && this.graph_data.ref_one && this.graph_data.ref_two) {
-        this.ref_one_corr = this.pcorr(this.graph_data.ref_one, this.graph_data.exp)
-        this.ref_two_corr = this.pcorr(this.graph_data.ref_two, this.graph_data.exp)
-      }
+    async onFileChange(name, file) {
+      if (!file) return;
+      const content = await this.readFile(file);
+      // Extract only the Y values from the parsed file content
+      this.graph_data[name] = this.extractYValues(content);
+      this.calculateCorrelations();
     },
-    removeX(arr) {
+
+    extractYValues(arr) {
+      // Assuming each element in arr is a pair [x, y], return only the y values
       return arr?.map(el => el[1]);
     },
-    removeY(arr) {
-      return arr?.map(el => el[0]);
-    },
-    pcorr(x, y) {
-      if (!x || !y) return;
 
-      let sumX = 0,
-        sumY = 0,
-        sumXY = 0,
-        sumX2 = 0,
-        sumY2 = 0;
-
-      const minLength = Math.min(x.length, y.length);
-
-      for (let i = 0; i < minLength; i++) {
-        const xi = x[i];
-        const yi = y[i];
-        if(!isNaN(xi) && !isNaN(yi)) {
-          sumX += xi;
-          sumY += yi;
-          sumXY += xi * yi;
-          sumX2 += xi * xi;
-          sumY2 += yi * yi;
-        } else {
-          console.log(`Problem at line ${i}`)
-        }
+    calculateCorrelations() {
+      const { exp, ref_one, ref_two } = this.graph_data;
+      if (exp && ref_one && ref_two) {
+        // Calculate Pearson correlation between reference one and experimental data
+        this.ref_one_corr = this.calculatePearsonCorrelation(ref_one, exp);
+        // Calculate Pearson correlation between reference two and experimental data
+        this.ref_two_corr = this.calculatePearsonCorrelation(ref_two, exp);
       }
-
-      const numerator = minLength * sumXY - sumX * sumY;
-      const denominator = Math.sqrt((minLength * sumX2 - sumX * sumX) * (minLength * sumY2 - sumY * sumY));
-
-      if (denominator === 0) return 0; // handle division by zero
-
-      return numerator / denominator;
     },
 
-    async reader(file) {
-      if (file) {
-        const text = await file.text();
-        const ret = []
-        var lines = text.split('\n');
-        for (var line = 0; line < lines.length; line++) {
-          const line_text = lines[line].replace("\t", " ").replace("\r", "")
-          if (!line_text.startsWith("#")) ret.push(line_text.split(" ").map(element => {
-            return Number(element);
-          }));
-        }
+    calculatePearsonCorrelation(x, y) {
+      if (!x || !y) return null;
 
-        return ret;
+      // Initialize variables for sum calculations
+      let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
+      let n = 0;
+
+      // Iterate through both arrays simultaneously
+      for (let i = 0; i < x.length && i < y.length; i++) {
+        const xi = x[i], yi = y[i];
+        if (isNaN(xi) || isNaN(yi)) {
+          console.log(`Problem at line ${i}`);
+          continue;
+        }
+        n++;
+        // Calculate running sums for correlation formula
+        sumX += xi;
+        sumY += yi;
+        sumXY += xi * yi;
+        sumX2 += xi * xi;
+        sumY2 += yi * yi;
       }
+
+      if (n < 2) return null; // Not enough data to calculate correlation
+
+      const meanX = sumX / n;
+      const meanY = sumY / n;
+
+      // Calculate numerator and denominator for Pearson correlation formula
+      // Formula: r = Σ((x - x̄)(y - ȳ)) / sqrt(Σ(x - x̄)² * Σ(y - ȳ)²)
+      // This is a computationally efficient version of the formula
+      const numerator = sumXY - n * meanX * meanY;
+      const denominator = Math.sqrt((sumX2 - n * meanX * meanX) * (sumY2 - n * meanY * meanY));
+
+      // Return correlation or 0 if denominator is 0 (to avoid division by zero)
+      return denominator === 0 ? 0 : numerator / denominator;
+    },
+
+    async readFile(file) {
+      const text = await file.text();
+      return text.split('\n')
+        .filter(line => !line.startsWith('#')) // Remove header lines
+        .map(line => line
+          .replace(/[\t\r]/g, ' ') // Replace tabs and carriage returns with spaces
+          .split(' ') // Split by space
+          .map(Number) // Convert each element to a number
+        );
     },
   }
 }
