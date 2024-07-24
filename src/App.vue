@@ -17,9 +17,22 @@
       <Icon class="h-4 w-4 text-red-500" icon="ph:heart-light"></Icon>
       <span>by</span>
       <a class="underline text-indigo-300" href="https://github.com/aesisify/" target="_blank">
-        Oğuz "Aesisify" Gergin
+        Oğuz Gergin
+      </a>
+      <span>and</span>
+      <a class="underline text-indigo-300" href="https://metal-urjia.blogspot.com/" target="_blank">
+        Ekin Metin
       </a>
     </div>
 
   </div>
 </template>
+
+<style>
+input::file-selector-button {
+  border: none;
+  background: white;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+</style>
