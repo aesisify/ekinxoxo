@@ -7,8 +7,12 @@ import router from './router'
 
 import './assets/main.css'
 
+import { Icon } from "@iconify/vue2";
+
 Vue.use(JsonViewer)
 Vue.use(PiniaVuePlugin)
+
+Vue.component("Icon", Icon);
 
 new Vue({
   router,
