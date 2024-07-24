@@ -1,6 +1,6 @@
-# ekinxoxo (Simple project for a friend. Don't use it for anything, it's bad)
+# EkinXoXo
 
-This template should help get you started developing with Vue 3 in Vite.,
+Small web project, allowing users to analyze and calculate correlations between scientific XY data.
 
 ## Recommended IDE Setup
 
