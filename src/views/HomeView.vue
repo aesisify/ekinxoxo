@@ -11,7 +11,7 @@
     </div>
     <div class="mt-4">
       <p v-for="(corr, index) in correlations" :key="index">
-        {{ corr.label }}: <strong>{{ corr.value || "Not calculated" }}</strong>
+        {{ corr.label }}: <strong>{{ corr.value?.toFixed(6) || "Not calculated" }}</strong>
       </p>
     </div>
   </main>
