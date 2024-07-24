@@ -3,9 +3,9 @@
     <header>
       <nav class="flex flex-row gap-2">
         <router-link class="uppercase font-semibold" to="/"
-          exact-active-class="text-blue-500 underline">Ekinxoxo</router-link>
+          exact-active-class="text-blue-500 underline">Pearson</router-link>
         <router-link class="uppercase font-semibold" to="/nono"
-          exact-active-class="text-blue-500 underline">Ekinnono</router-link>
+          exact-active-class="text-blue-500 underline">Normalization</router-link>
       </nav>
     </header>
 
