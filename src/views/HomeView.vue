@@ -1,7 +1,7 @@
 <template>
   <main>
     <p class="text-sm italic mt-2">
-      Please select all three files to do the calculation. All calculations are being done at front-end, so no files are
+      Please select atleast one reference and experimental to calculate. All calculations are being done at front-end, so no files are
       being stored on our servers.
     </p>
     <div v-for="(file, index) in fileInputs" :key="file.id" class="mt-1">
