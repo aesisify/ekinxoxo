@@ -1,6 +1,6 @@
 # EkinXoXo
 
-Small web project, allowing users to analyze and calculate correlations between scientific files.
+Small web project, allowing users to analyze and calculate correlations between scientific XY data.
 
 ## Recommended IDE Setup
 
