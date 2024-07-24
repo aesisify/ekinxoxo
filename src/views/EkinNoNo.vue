@@ -2,150 +2,118 @@
     <main>
         <p class="text-sm italic mt-2">
             Please select files to do the calculation. All calculations are being done at front-end, so no
-            files are
-            being stored on our servers.
+            files are being stored on our servers.
         </p>
-        <div v-for="(file, index) in fileInputs" :key="file.id" class="mt-1">
+        <div v-for="file in fileInputs" :key="file.id" class="mt-1">
             <label class="block" :for="file.id">{{ file.label }}</label>
             <input class="block" type="file" :id="file.id" :name="file.id" multiple
-                @change="onFileChange($event.target.name, $event.target.files)" />
+                @change="onFileChange($event.target.files)" />
         </div>
-        <button v-if="showDownload" @click="download" class="text-blue-500 underline font-medium mt-4">Download as text file</button>
+
+        <button v-if="Object.keys(flatData).length > 0" @click="download" class="text-blue-500 underline font-medium mt-4">
+            Download as text file
+        </button>
+
+        <div v-if="Object.keys(flatData).length > 0" class="mt-4">
+            <button @click="showTable = !showTable" class="text-blue-500 underline font-medium mb-2">
+                Show as table here
+            </button>
+            <div class="overflow-x-auto text-xs max-w-[200px]" v-if="showTable">
+                <table class="min-w-full bg-gray-900 border border-gray-300">
+                    <thead>
+                        <tr>
+                            <th class="px-2 py-1 bg-gray-800 border-b text-left border-r">X</th>
+                            <th class="px-2 py-1 bg-gray-800 border-b text-left">Mean</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(data, x) in flatData" :key="x" class="hover:bg-gray-700">
+                            <td class="px-2 py-1 border-b border-r">{{ x }}</td>
+                            <td class="px-2 py-1 border-b">{{ arrayMean(data.values).toFixed(6) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </main>
 </template>
 
 <script>
-import { nextTick } from 'vue';
-
 export default {
     data() {
         return {
             fileInputs: [
                 { id: 'files', label: 'Choose your files:' },
             ],
-            flat_data: {},
-            file_data: {},
-            showDownload: false,
-        }
+            flatData: {},
+            fileData: {},
+            showTable: false,
+        };
     },
     methods: {
-        async onFileChange(name, files) {
-            this.showDownload = false;
-            this.flat_data = {}
-            this.file_data = {}
+        async onFileChange(files) {
+            this.flatData = {};
+            this.fileData = {};
             await this.extractFileDatas(files);
-            setTimeout(() => {
-                this.showDownload = true;
-            }, 250);
         },
         async extractFileDatas(files) {
-            this.flat_data = {}
-            this.file_data = {}
+            for (const file of Array.from(files)) {
+                const data = await this.readFile(file);
+                this.$set(this.fileData, file.name, data);
 
-            const new_file_data = {}
-            const new_flat_data = {}
-
-            Array.from(files).forEach(async (file, i) => {
-                const data = await this.readFile(file)
-                new_file_data[file.name] = data
-
-                Object.keys(data).forEach(row_key => {
-                    if (!new_flat_data[row_key]) {
-                        new_flat_data[row_key] = { x: row_key, values: [data[row_key]] }
+                Object.entries(data).forEach(([rowKey, value]) => {
+                    if (!this.flatData[rowKey]) {
+                        this.$set(this.flatData, rowKey, { x: rowKey, values: [value] });
                     } else {
-                        new_flat_data[row_key].values.push(data[row_key])
+                        this.flatData[rowKey].values.push(value);
                     }
-                })
-            });
-
-            this.flat_data = new_flat_data
-            this.file_data = new_file_data;
+                });
+            }
         },
         download() {
-            let string = ""
-            string += `# EKINNONO ${new Date()}\n# Y mean for files; ${Object.keys(this.file_data).join(', ')}.\n\n`
-            string += `X\tmean\n`
+            let string = `# EKINNONO ${new Date()}\n# Normalized Y mean for files; ${Object.keys(this.fileData).join(', ')}.\n\n`;
+            string += `X\tmean\n`;
 
-            Object.values(this.flat_data).forEach(data => {
-                string += `${data.x}\t${this.arrayMean(data.values)}\n`
-            })
+            Object.entries(this.flatData).forEach(([x, data]) => {
+                const mean = this.arrayMean(data.values);
+                string += `${x}\t${mean.toFixed(6)}\n`;
+            });
 
-            var blob = new Blob([string], { type: "txt" });
+            const blob = new Blob([string], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
 
-            var a = document.createElement('a');
-            a.download = Date.now();
-            a.href = URL.createObjectURL(blob);
-            a.dataset.downloadurl = ["txt", a.download, a.href].join(':');
-            a.style.display = "none";
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ekinnono_${Date.now()}.txt`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            setTimeout(function () { URL.revokeObjectURL(a.href); }, 1500);
-        },
-        extractXValues(arr) {
-            // Assuming each element in arr is a pair [x, y], return only the x values
-            return arr?.map(el => el[0]);
-        },
-        extractYValues(arr) {
-            // Assuming each element in arr is a pair [x, y], return only the y values
-            return arr?.map(el => el[1]);
-        },
-        normalize(val, min, max) {
-            // Shift to positive to avoid issues when crossing the 0 line
-            if (min < 0) {
-                max += 0 - min;
-                val += 0 - min;
-                min = 0;
-            }
-            // Shift values from 0 - max
-            val = val - min;
-            max = max - min;
-            return Math.max(0, Math.min(1, val / max));
-        },
-        arrayMin(arr) {
-            return arr.reduce(function (p, v) {
-                if (typeof p !== 'number') return v;
-                if (typeof v !== 'number') return p;
-                return (p < v ? p : v);
-            });
-        },
-        arrayMax(arr) {
-            return arr.reduce(function (p, v) {
-                if (typeof p !== 'number') return v;
-                if (typeof v !== 'number') return p;
-                return (p > v ? p : v);
-            });
-        },
-        arrayMean(arr) {
-            const sum = arr.reduce((a, b) => {
-                if (typeof a !== 'number') return b;
-                if (typeof b !== 'number') return a;
-                return a + b;
-            }, 0);
-            const count = arr.filter(item => typeof item === 'number').length;
-            return count > 0 ? sum / count : 0;
+            URL.revokeObjectURL(url);
         },
         async readFile(file) {
             const text = await file.text();
-            let file_obj = {}
             const rows = text.split('\n')
-                .filter(line => !line.startsWith('#')) // Remove header lines
-                .map(line => line
-                    .replace(/[\t\r]/g, ' ') // Replace tabs and carriage returns with spaces
-                    .split(' ') // Split by space
-                    .map(Number) // Convert each element to a number
-                );
+                .filter(line => !line.startsWith('#'))
+                .map(line => line.trim().split(/\s+/).map(Number))
+                .filter(row => row.length === 2 && !isNaN(row[0]) && !isNaN(row[1]));
 
-            const y_values = this.extractYValues(rows)
-            const min_val = this.arrayMin(y_values);
-            const max_val = this.arrayMax(y_values);
+            const yValues = rows.map(row => row[1]);
+            const minVal = Math.min(...yValues);
+            const maxVal = Math.max(...yValues);
 
-            rows.forEach(row => {
-                file_obj[row[0]] = this.normalize(row[1], min_val, max_val)
-            })
-
-            return file_obj;
+            return Object.fromEntries(rows.map(row => [
+                row[0],
+                this.normalize(row[1], minVal, maxVal)
+            ]));
         },
-    }
-}
+        normalize(val, min, max) {
+            if (min === max) return 0; // Avoid division by zero
+            return (val - min) / (max - min);
+        },
+        arrayMean(arr) {
+            const sum = arr.reduce((a, b) => a + b, 0);
+            return sum / arr.length;
+        },
+    },
+};
 </script>
