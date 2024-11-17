@@ -1,17 +1,30 @@
 <template>
   <main>
-    <p class="text-sm italic mt-2">
-      Please select atleast one reference and experimental to calculate. All calculations are being done at front-end, so no files are
-      being stored on our servers.
+    <p class="text-sm italic mt-2 mb-4">
+      Please select at least one reference and experimental file to calculate correlations. 
+      All calculations are performed in your browser - no files are stored on our servers.
     </p>
-    <div v-for="(file, index) in fileInputs" :key="file.id" class="mt-1">
-      <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white" :for="file.id">{{ file.label }}</label>
-      <input class="block w-full mb-1 text-xs text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400" type="file" :id="file.id" :name="file.id"
-        @change="onFileChange($event.target.name, $event.target.files[0])" />
+
+    <div v-for="file in fileInputs" :key="file.id" class="mt-4">
+      <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white" :for="file.id">
+        {{ file.label }}
+      </label>
+      <input
+        class="block w-full mb-1 text-xs text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400"
+        type="file"
+        :id="file.id"
+        :name="file.id"
+        accept=".txt"
+        @change="onFileChange($event.target.name, $event.target.files[0])"
+      />
+      <div v-if="errors[file.id]" class="mt-2 p-4 text-sm text-red-800 rounded-lg bg-red-50">
+        {{ errors[file.id] }}
+      </div>
     </div>
-    <div class="mt-4">
+
+    <div class="mt-6">
       <p v-for="(corr, index) in correlations" :key="index">
-        {{ corr.label }}: <strong>{{ corr.value?.toFixed(6) || "Not calculated" }}</strong>
+        {{ corr.label }}: <strong>{{ formatCorrelation(corr.value) }}</strong>
       </p>
     </div>
   </main>
@@ -29,8 +42,10 @@ export default {
       graph_data: {},
       ref_one_corr: null,
       ref_two_corr: null,
+      errors: {}
     }
   },
+
   computed: {
     correlations() {
       return [
@@ -39,81 +54,162 @@ export default {
       ]
     }
   },
+
   methods: {
-    async onFileChange(name, file) {
-      if (!file) return;
-      const content = await this.readFile(file);
-      // Extract only the Y values from the parsed file content
-      this.graph_data[name] = this.extractYValues(content);
-      this.calculateCorrelations();
+    formatCorrelation(value) {
+      return value?.toFixed(6) || "Not calculated"
     },
 
-    extractYValues(arr) {
-      // Assuming each element in arr is a pair [x, y], return only the y values
-      return arr?.map(el => el[1]);
+    validateDataFormat(data) {
+      if (!Array.isArray(data) || data.length === 0) {
+        throw new Error('Invalid file format: File appears to be empty')
+      }
+
+      // Check first few rows to determine if format is correct
+      const sampleRows = data.slice(0, Math.min(5, data.length))
+      for (const [index, row] of sampleRows.entries()) {
+        if (!Array.isArray(row) || row.length !== 2) {
+          throw new Error(`Invalid data format at line ${index + 1}: Each line must contain exactly two numbers`)
+        }
+        if (row.some(val => typeof val !== 'number' || isNaN(val))) {
+          throw new Error(`Invalid data format at line ${index + 1}: Both values must be valid numbers`)
+        }
+      }
+
+      return true
     },
 
-    calculateCorrelations() {
-      const { exp, ref_one, ref_two } = this.graph_data;
-      if (exp && ref_one) {
-        // Calculate Pearson correlation between reference one and experimental data
-        this.ref_one_corr = this.calculatePearsonCorrelation(ref_one, exp);
-      }
+    parseFileContent(text) {
+      const lines = text.split('\n')
+        .map(line => line.trim())
+        .filter(line => line && !line.startsWith('#'))
 
-      if (exp && ref_two) {
-        // Calculate Pearson correlation between reference two and experimental data
-        this.ref_two_corr = this.calculatePearsonCorrelation(ref_two, exp);
-      }
+      return lines.map((line, index) => {
+        const values = line
+          .replace(/[\t\r,]+/g, ' ') // Replace tabs, commas, and carriage returns with spaces
+          .split(/\s+/) // Split by any number of whitespace characters
+          .map(val => {
+            const num = parseFloat(val)
+            if (isNaN(num)) {
+              throw new Error(`Invalid number at line ${index + 1}: "${val}"`)
+            }
+            return num
+          })
+
+        if (values.length !== 2) {
+          throw new Error(`Invalid line format at line ${index + 1}: Expected 2 values, got ${values.length}`)
+        }
+
+        return values
+      })
     },
 
     calculatePearsonCorrelation(x, y) {
-      if (!x || !y) return null;
-
-      // Initialize variables for sum calculations
-      let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
-      let n = 0;
-
-      // Iterate through both arrays simultaneously
-      for (let i = 0; i < x.length && i < y.length; i++) {
-        const xi = x[i], yi = y[i];
-        if (isNaN(xi) || isNaN(yi)) {
-          console.log(`Problem at line ${i}`);
-          continue;
-        }
-        n++;
-        // Calculate running sums for correlation formula
-        sumX += xi;
-        sumY += yi;
-        sumXY += xi * yi;
-        sumX2 += xi * xi;
-        sumY2 += yi * yi;
+      if (!x || !y || x.length < 2 || y.length < 2) {
+        throw new Error('Insufficient data points for correlation calculation')
       }
 
-      if (n < 2) return null; // Not enough data to calculate correlation
+      if (x.length !== y.length) {
+        throw new Error(`Data length mismatch: ${x.length} vs ${y.length} points`)
+      }
 
-      const meanX = sumX / n;
-      const meanY = sumY / n;
+      let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0
+      let n = 0
 
-      // Calculate numerator and denominator for Pearson correlation formula
-      // Formula: r = Σ((x - x̄)(y - ȳ)) / sqrt(Σ(x - x̄)² * Σ(y - ȳ)²)
-      // This is a computationally efficient version of the formula
-      const numerator = sumXY - n * meanX * meanY;
-      const denominator = Math.sqrt((sumX2 - n * meanX * meanX) * (sumY2 - n * meanY * meanY));
+      for (let i = 0; i < x.length; i++) {
+        const xi = x[i], yi = y[i]
+        if (isNaN(xi) || isNaN(yi)) {
+          throw new Error(`Invalid data point at index ${i}`)
+        }
+        n++
+        sumX += xi
+        sumY += yi
+        sumXY += xi * yi
+        sumX2 += xi * xi
+        sumY2 += yi * yi
+      }
 
-      // Return correlation or 0 if denominator is 0 (to avoid division by zero)
-      return denominator === 0 ? 0 : numerator / denominator;
+      const meanX = sumX / n
+      const meanY = sumY / n
+      const numerator = sumXY - n * meanX * meanY
+      const denominator = Math.sqrt((sumX2 - n * meanX * meanX) * (sumY2 - n * meanY * meanY))
+
+      if (denominator === 0) {
+        throw new Error('Cannot calculate correlation: No variation in data')
+      }
+
+      return numerator / denominator
+    },
+
+    extractYValues(arr) {
+      return arr?.map(el => el[1])
     },
 
     async readFile(file) {
-      const text = await file.text();
-      return text.split('\n')
-        .filter(line => !line.startsWith('#')) // Remove header lines
-        .map(line => line
-          .replace(/[\t\r]/g, ' ') // Replace tabs and carriage returns with spaces
-          .split(' ') // Split by space
-          .map(Number) // Convert each element to a number
-        );
+      try {
+        const text = await file.text()
+        return this.parseFileContent(text)
+      } catch (error) {
+        throw new Error(`Error reading file: ${error.message}`)
+      }
     },
+
+    async onFileChange(name, file) {
+      try {
+        // Clear previous error for this file
+        this.$set(this.errors, name, null)
+
+        if (!file) {
+          throw new Error('No file selected')
+        }
+
+        if (!file.name.toLowerCase().endsWith('.txt')) {
+          throw new Error('Please upload a .txt file')
+        }
+
+        const content = await this.readFile(file)
+        this.validateDataFormat(content)
+
+        // Extract Y values and update graph data
+        this.$set(this.graph_data, name, this.extractYValues(content))
+        
+        // Recalculate correlations
+        this.calculateCorrelations()
+
+      } catch (error) {
+        console.error(`Error processing file ${name}:`, error)
+        this.$set(this.errors, name, error.message)
+        
+        // Clear corresponding correlation
+        if (name === 'ref_one') {
+          this.ref_one_corr = null
+        } else if (name === 'ref_two') {
+          this.ref_two_corr = null
+        } else if (name === 'exp') {
+          this.ref_one_corr = null
+          this.ref_two_corr = null
+        }
+      }
+    },
+
+    calculateCorrelations() {
+      const { exp, ref_one, ref_two } = this.graph_data
+
+      try {
+        if (exp && ref_one) {
+          this.ref_one_corr = this.calculatePearsonCorrelation(ref_one, exp)
+        }
+
+        if (exp && ref_two) {
+          this.ref_two_corr = this.calculatePearsonCorrelation(ref_two, exp)
+        }
+      } catch (error) {
+        console.error('Error calculating correlations:', error)
+        // Clear correlations if calculation fails
+        this.ref_one_corr = null
+        this.ref_two_corr = null
+      }
+    }
   }
 }
 </script>
