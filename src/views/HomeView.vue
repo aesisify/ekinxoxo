@@ -1,7 +1,7 @@
 <template>
   <main>
     <p class="text-sm italic mt-2 mb-4">
-      Please select at least one reference and experimental file to calculate correlations. 
+      Please select at least one reference and experimental file to calculate correlations.
       All calculations are performed in your browser - no files are stored on our servers.
     </p>
 
@@ -11,12 +11,8 @@
       </label>
       <input
         class="block w-full mb-1 text-xs text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400"
-        type="file"
-        :id="file.id"
-        :name="file.id"
-        accept=".txt"
-        @change="onFileChange($event.target.name, $event.target.files[0])"
-      />
+        type="file" :id="file.id" :name="file.id" accept=".txt"
+        @change="onFileChange($event.target.name, $event.target.files[0])" />
       <div v-if="errors[file.id]" class="mt-2 p-4 text-sm text-red-800 rounded-lg bg-red-50">
         {{ errors[file.id] }}
       </div>
@@ -131,6 +127,10 @@ export default {
 
       const meanX = sumX / n
       const meanY = sumY / n
+
+      // Calculate numerator and denominator for Pearson correlation formula
+      // Formula: r = Σ((x - x̄)(y - ȳ)) / sqrt(Σ(x - x̄)² * Σ(y - ȳ)²)
+      // This is a computationally efficient version of the formula
       const numerator = sumXY - n * meanX * meanY
       const denominator = Math.sqrt((sumX2 - n * meanX * meanX) * (sumY2 - n * meanY * meanY))
 
@@ -172,14 +172,14 @@ export default {
 
         // Extract Y values and update graph data
         this.$set(this.graph_data, name, this.extractYValues(content))
-        
+
         // Recalculate correlations
         this.calculateCorrelations()
 
       } catch (error) {
         console.error(`Error processing file ${name}:`, error)
         this.$set(this.errors, name, error.message)
-        
+
         // Clear corresponding correlation
         if (name === 'ref_one') {
           this.ref_one_corr = null
